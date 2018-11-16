@@ -1,0 +1,299 @@
+---
+title: Assignment 8 - Comparing Two Means
+subtitle: "Marshall Lloyd 260826132"
+author: "EPIB 607, Fall 2018, McGill University"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: false
+    number_sections: true
+    toc_depth: 3
+    keep_md: false
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r include = FALSE}
+## ---- Setup ------------------------------------------------------------------
+knitr::opts_chunk$set(
+  echo = FALSE,          # don't show code
+  warning = FALSE,       # don't show warnings
+  message = FALSE,       # don't show messages (less serious warnings)
+  cache = FALSE,         # set to TRUE to save results from last compilation
+  fig.align = "center",   # center figures
+  fig.asp = 1,          # fig.aspect ratio
+  fig.width = 10        # fig width
+)
+```
+
+
+# Food Counseling For Obese Children
+
+
+```{r}
+## ---- Question-1 ------------------------------------------------------------
+
+library(mosaic)
+library(ggplot2)
+
+#According to the Centers for Disease Control and Prevention (CDC), obesity rates among U.S. children have increased dramatically over the past three decades, 
+#from a low of about 5% to 18% as of 2010. A study examined the effect of family-based food-counseling sessions provided by trained professionals. The study randomly 
+#assigned obese children aged 9 to 12 years to either the counseling intervention or a control group not receiving any food counseling. The children’s weight changes 
+#(in pounds, lb) after 15 weeks is displayed in Table 1.
+
+#a. Plot the data.
+
+obint <- c(-16.7, -14.8, -11.9, -9.7, -9.6, -8.8, -8.0, -7.1, -6.6, -6.0, -5.6, -5.6, -5.5, -5.5, -5.1, -5.0, -5.0, -4.8, -4.4, -4.4, -4.1, -4.0, -4.0, -3.6, -3.5, -3.2, -2.8, -2.0, -1.8, -1.8, -1.4, -1.2, -0.2, -0.1, 0, 0.2, 0.6, 1.0, 1.2, 1.2, 1.4, 1.8, 2.0, 2.2, 2.5, 2.8, 3.3, 4.2, 5.4, 5.8, 6.0, 6.4, 8.4)
+obint <- as.data.frame(obint)
+colnames(obint) <- c("Weight Change")
+obint$Intervention <- rep(1, nrow(obint))
+obint
+
+obcon <- c(12.0, 10, 9, 8.6, 7.1,6.7, 6.1, 4.8, 4.6, 4.5, 2.8, 2.8, 2.8, 2.7, 1.8, 1.6, 1.0, 0.7, 0.4, 0.1, 0.1, -5.1, -5.1)
+obcon <- as.data.frame(obcon)
+colnames(obcon) <- c("Weight Change")
+obcon$Intervention <- rep(0, nrow(obcon))
+
+
+obstudy <- rbind(obint, obcon)
+str(obstudy)
+obstudy$Intervention <- as.factor(obstudy$Intervention)
+
+summary(obstudy)
+
+plotob <- ggplot(obstudy) + 
+  geom_boxplot(aes(x = `Intervention`, y = `Weight Change`)) + 
+  labs(title = "Weight Change in Childhood Obesity Study", x = "Study Group", y = "Weight Change (lbs)") +
+  scale_x_discrete(labels=c("0" = "Control", "1" = "Intervention"))
+```
+
+```{r}
+plotob
+```
+
+```{r}
+#b. We are interested in knowing if obese children receiving food counseling gain less weight over a 15-week period. State the
+#regression model as a function of population parameters. Be sure to define what each parameter represents.
+```
+
+b. $\mu = \mu_o + \Delta \mu*X$ where $\mu$ is child weight change, $\mu_o$ is baseline weight change (ie: of the control group), $\Delta \mu$ is difference in weight change due to intervention, and $X$ is dummy variable for intervention that takes the value (1) for the counselling intervention or (0) for no intervention.
+
+
+```{r}
+#c. Use a regression procedure to answer this question. State the hypotheses, interpret the parameter of interest and a brief statement
+#about your findings.
+
+lmobstudy <- lm(obstudy$`Weight Change` ~ obstudy$Intervention)
+(lmobsum <- summary(lmobstudy))
+(lmobsumpvalue <- lmobsum$coefficients[2,4])
+(weightlossPE <- -round((lmobsum$coefficients[2,1]), 2))
+
+
+(weightgain95CI <- -round(as.vector(rev(confint(lmobstudy)[2,])), 2))
+
+
+(resid(obstudy))
+
+
+
+# Pr(>t)/2 is larger than 0.05, so the prob of geting this data given Ho true is very unlikely. This is data that supports rejection of the null hypothesis. 
+```
+
+$H_o: \mu = \mu_o$ or  $\Delta \mu = 0$ ; $H_a: \Delta \mu = 0$ or $\mu = \mu_o$
+
+This is a two sided-test because it's possible that the counseling could have a negative or positive impact on weight gain. Assuming an SRS and using the linear model described in in b, the treatment group gained `r weightlossPE` fewer pounds that the contorl group with a 95% confidence interval of `r weightgain95CI`. The p value for the difference in weight gain of the intervention group is `r lmobsumpvalue`, which means that the probability of getting this data given the null hypothesis is true is very small. This data supports the rejection of the null hypothesis and suggests that the intervention leads to less weight gain in children. 
+
+
+
+
+
+
+```{r}
+#d. Show how the Std. Error was calculated for the parameter of interest.
+#tstat
+SEobint <- sqrt(((sd(obint$`Weight Change`)^2) * (nrow(obint) - 1 ) + (sd(obcon$`Weight Change`)^2) * (nrow(obcon) - 1 )) / (nrow(obint)+nrow(obcon)-2)) * sqrt( (1/nrow(obint))+(1/nrow(obcon)) )
+        
+
+```
+
+
+
+# Student Drinking
+
+
+```{r}
+## ---- Question-2 ------------------------------------------------------------
+
+#2. A professor asked her sophomore students, “How many drinks do you typically have per 
+#session” (A drink is defined as one 12-ouncebeer, one 4-ounce glass of wine, or one 1-ounce shot of liquor.) 
+#Some of the students didn’t drink. Table 2 gives the responses of thefemale and male students who did drink. 
+#It is likely that some of the students exaggerated a bit. The sample is all students in one largesophomore-
+#level class. The class is popular, so we are tentatively willing to regard its members as an SRS of sophomore 
+#students at thiscollege.
+#a.  Do a complete analysis that reports on a comparison of the drinking behavior of women and men.
+
+femaledranks <- c(2.5, 9, 1, 3.5, 2.5, 3, 1, 3, 3, 3, 3, 2.5, 2.5, 5, 3.5, 5, 1, 2, 1, 7, 3, 7, 4, 4, 6.5, 4, 3, 6, 5, 3, 8, 6, 6, 3, 6, 8, 3, 4, 7, 4, 5, 3.5, 4, 2, 1, 5, 5, 3, 3, 6, 4, 2, 7, 7, 7, 5.5, 3, 2.5, 10, 5, 4, 9, 8, 1, 6, 2, 5, 2.5, 3, 4.5, 9, 5, 4, 4, 3, 4, 6, 7, 4, 5, 1, 5, 3, 4, 10, 7, 3, 4, 4, 4, 4, 2, 1, 2.5, 2.5)
+fdranks <- as.data.frame(femaledranks)
+colnames(fdranks) <- c("Drinks")
+fdranks$Gender <- rep(1, nrow(fdranks))
+fdranks
+
+
+maledranks <- c(7, 7.5, 8, 15, 3, 4, 1, 5, 11, 4.5, 6, 4, 10, 16, 4, 8, 5, 9, 7, 7, 3, 5, 6.5, 1, 12, 4, 6, 8, 8, 4.5, 10.5, 8, 6, 10, 1, 9, 8, 7, 8, 15, 3, 10, 7, 4, 6, 5, 2, 10, 7, 9, 5, 8, 7, 3, 7, 6, 4, 5, 2, 5, 5.5, 9, 10, 10, 4, 8, 4, 2, 4, 12.5, 3, 15, 2, 6, 3, 4, 3, 10, 6, 4.5, 5)
+mdranks <- as.data.frame(maledranks)
+colnames(mdranks) <- c("Drinks")
+mdranks$Gender <- rep(0, nrow(mdranks))
+mdranks
+
+drinkipoos <- rbind(fdranks, mdranks)
+str(drinkipoos)
+drinkipoos$Gender <- as.factor(drinkipoos$Gender)
+
+
+plotdranks <- ggplot(drinkipoos)
+plotdranks + geom_boxplot(aes(x = `Gender`, y = `Drinks`)) + labs(title = "Sophmore Drinking Habits by Gender", x = "Gender", y = "Drinks per Session")+ scale_x_discrete(labels=c("0" = "Male", "1" = "Female"))
+
+lmdranks <- lm(drinkipoos$Drinks ~ drinkipoos$Gender)
+summary(lmdranks)
+
+# mu = muo + deltamu * X ; mu is number of drinks by girls, muo is number of drinks for guys, delta mu is the difference in drinks between guys and girl, X is the dummy variable, where girl = 1 and guys = 0 
+# Ho: mu = muo or deltamu = 0; Ha: mu =/= muo or deltamu =/= 0
+
+#could also do a ratio, this is from the handout
+glmdranks <- glm(data = drinkipoos, Drinks ~ Gender, family = gaussian(link = log))
+summary(glmdranks)
+
+#b.  Summarise your findings in a 140 character tweet.
+
+#sophmore boys drinking more than girls, but is it too much
+
+#c.  (BONUS) Verify the constant variance assumption of your model.
+
+drankresid <- resid(lmdranks)
+plot(, drankresid)
+qqnorm(drankresid)
+qqline(drankresid)
+
+#The residuals do not form a horizontal band around the zero line, whih suggests that the variance terms are not equal. 
+
+```
+
+
+
+# Ink Toxicity 
+
+```{r}
+## ---- Question-3 ------------------------------------------------------------
+
+#3.  Ink toxicityThe National Toxicology Program evaluates the toxicity of chemicals found in manufacturing, 
+#in consumer products, or in the environmentafter disposal. Toxicity is assessed through a battery of tests. 
+#Here are some results from a study of the toxicity of black newsprint ink in7-week-old female rats. The rats’ 
+#fur was locally clipped twice a week for 13 weeks. One group of rats received a dermal application ofink right
+#after each clipping, and a control group of rats was left untreated. Table 3 shows the body weights (in grams)
+#of female rats atthe beginning of the study and at the end of the 13 weeks.
+
+#a.  Verify that the two experimental groups are not significantly different at the beginning of the study
+ratbasecon1 <- c(111.2, 105.4, 110.8, 105.6, 106.1, 104.4, 114.0, 115.1, 109.2, 111.3)
+ratbasecon <- as.data.frame(ratbasecon1)
+colnames(ratbasecon) <- c("Weight")
+ratbasecon$Treatment <- rep(0, nrow(ratbasecon))
+ratbasecon
+
+ratbastre1 <- c(107.3, 116.7, 112.2, 103.4, 113.2, 110.6, 110.6, 100.5, 106.3, 112.5)
+ratbastre <- as.data.frame(ratbastre1)
+colnames(ratbastre) <- c("Weight")
+ratbastre$Treatment <- rep(1, nrow(ratbastre))
+ratbastre
+
+ratbase <- rbind(ratbastre, ratbasecon)
+ratbase
+
+lmratbase <- lm(data = ratbase, Weight ~ Treatment)
+
+lmratbasesum <- summary(lmratbase)
+lmratebasep <- round(lmratbasesum$coefficients[2, 4], 2)
+
+#They are not significantly different at baseline. 
+```
+
+```{r}
+#b. Is there good evidence that ink application impairs growth in female rats between 7 and 20 weeks of age? 
+#State your answer interms of the % difference between the mean weight gains of the two populations. 
+#Provide a 95% confidence interval for the %difference between the mean weight gains of the two populations.
+
+rat13con <- c(191.6, 191.2, 210.7, 185.2, 195.0, 188.3, 188.4, 195.6, 204.6, 195.7)
+rat13con <- as.data.frame(rat13con)
+ratgaincon <- cbind(rat13con - ratbasecon1, rep(0, nrow(ratbasecon)))
+colnames(ratgaincon) <- c("Weight Change", "Treatment")
+
+rat13tre <- c(187, 189.5, 179.2, 172.2, 178.7, 180.9, 188.3, 188.9, 183.1, 184.5)
+rat13tre <- as.data.frame(rat13tre)
+ratgaintre <- cbind(rat13tre - ratbastre1, rep(1, nrow(rat13tre)))
+colnames(ratgaintre) <- c("Weight Change", "Treatment")
+
+ratgainexp <- rbind(ratgaintre, ratgaincon)
+ratgainexp
+
+ratglm <- summary(glm(data = ratgainexp, `Weight Change` ~ `Treatment`, family = gaussian(log)))
+ratglm
+
+#theta = mu / muo ; which is treat / con; Ho: log(theta) = 0 or theta = 1, Ha: log(theta) =/= 0 or theta =/= 1
+(ratglm$coefficients[2, 1])
+
+rattheta <- exp((ratglm$coefficients[2, 1]))
+
+
+logtheta95CI <- (ratglm$coefficients[2, 1]) + (qt(c(0.025, 0.975), 18)*(ratglm$coefficients[2, 2]))
+
+(ratglm$coefficients[2, 2])
+theta95CI <- round(exp(logtheta95CI), 3)
+ratdecrease <- round(1 - rattheta, 3)*100
+rat95CIdecrease <- (1-rev(theta95CI))*100
+
+ratdecrease
+rat95CIdecrease
+
+# the point estimate for theta is ratheta with a CI of logtheta. Doing 1- those values gives the % difference
+
+# c.  Show how the p-value in the glm output was calculated for the parameter of interest.
+
+
+rattstatcalc <- ((ratglm$coefficients[2, 1]) - 0) / (ratglm$coefficients[2, 2])
+ratpvaluecalc <- pt(q = rattstatcalc, df = 18) * 2
+
+
+
+```
+
+
+
+
+# Deaths by Horsekicks in the Prussian Army
+
+```{r}
+## ---- Question-4 - --------------------------------------------------------
+
+```
+
+
+
+
+# Crimes on full moon
+
+```{r}
+## ---- Question-5 - --------------------------------------------------------
+
+```
+
+
+
+
+
+
+
+# Code {-}
+
+```{r all-code, ref.label=knitr::all_labels(), echo = TRUE, eval = FALSE}
+
+```
